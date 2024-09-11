@@ -1,48 +1,69 @@
-use std::io;
 use plotters::prelude::*;
 use rand::Rng;
+use std::io;
 
 fn main() {
-    let mut input = String::new();
-    println!("How many iterations?");
+    loop {
+        let mut input = String::new();
+        println!("Choose the function (1 for x^2, 2 for sqrt(1 - x^2)):");
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read line.");
+        let choice: i32 = input.trim().parse().expect("Please enter a valid option.");
 
-    io::stdin()
-        .read_line(&mut input)
-        .expect("Failed to read line.");
+        let f: Box<dyn Fn(f64) -> f64> = match choice {
+            1 => Box::new(|x: f64| x.powi(2)), // Function x^2
+            2 => Box::new(|x: f64| (1.0 - x.powi(2)).sqrt()), // Function sqrt(1 - x^2)
+            _ => panic!("Invalid choice"),
+        };
 
-    let n: usize = input.trim().parse().expect("Please enter a valid number.");
+        input.clear();
+        println!("How many iterations?");
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read line.");
+        let n: usize = input.trim().parse().expect("Please enter a valid number.");
 
-    let f = |x: f64| x.powi(2); //Example function xˆ2
-    // let f = |x: f64| (1.0 - x.powi(2)).sqrt();
-    let a = 0.0;
-    let b = 2.0;
-    let h = 4.0;
+        let a = 0.0;
+        let b = if choice == 2 { 1.0 } else { 2.0 }; // Adjust 'b' based on the function
+        let h = if choice == 2 { 1.0 } else { 4.0 }; // Adjust 'h' based on the function
 
-    println!("Starting the calculation for {} iterations, to function ", n,);
+        println!("Starting the calculation for {} iterations, to function ", n);
 
-    let (inside_points, outside_points, integral_approx) = monte_carlo_integration(f, a, b, h, n);
-    plot_monte_carlo(
-        &inside_points,
-        &outside_points,
-        a,
-        b,
-        h,
-        n,
-        integral_approx,
-    );
+        let (inside_points, outside_points, integral_approx) = monte_carlo_integration(&*f, a, b, h, n);
+        plot_monte_carlo(
+            &inside_points,
+            &outside_points,
+            a,
+            b,
+            h,
+            n,
+            integral_approx,
+            choice,
+        );
 
-    println!("Approximate integral value: {}", integral_approx);
+        println!("Approximate integral value: {}", integral_approx);
+
+        println!("Do you want to perform another calculation? (yes/no)");
+        input.clear();
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read line.");
+        if input.trim().eq_ignore_ascii_case("no") {
+            break;
+        }
+    }
 }
 
 fn monte_carlo_integration<F>(
-    f: F,
+    f: &F,
     a: f64,
     b: f64,
     h: f64,
     n: usize,
 ) -> (Vec<(f64, f64)>, Vec<(f64, f64)>, f64)
 where
-    F: Fn(f64) -> f64,
+    F: Fn(f64) -> f64 + ?Sized,
 {
     let mut rng = rand::thread_rng();
     let mut inside_points = Vec::new();
@@ -74,9 +95,13 @@ fn plot_monte_carlo(
     h: f64,
     n: usize,
     integral_approx: f64,
+    choice: i32,
 ) {
-    // let name = format!("monte_carlo_integral_function:√(1-xˆ2)_{}.png", n);
-    let name = format!("monte_carlo_integral_function:xˆ2_{}.png", n);
+    let name = format!(
+        "monte_carlo_integral_function_{}_{}.png",
+        if choice == 1 { "xˆ2" } else { "sqrt(1-xˆ2)" },
+        n
+    );
     let root = BitMapBackend::new(&name, (600, 600)).into_drawing_area();
     root.fill(&WHITE).unwrap();
 

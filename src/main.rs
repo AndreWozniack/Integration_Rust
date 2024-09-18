@@ -5,7 +5,10 @@ use std::io;
 fn main() {
     loop {
         let mut input = String::new();
-        println!("Choose the function (1 for x^2, 2 for sqrt(1 - x^2)):");
+        println!("Choose the function (\n
+        1 -> for x^2, \n
+        2 -> for sqrt(1 - x^2))\n
+        3 -> x^2 + 1:");
         io::stdin()
             .read_line(&mut input)
             .expect("Failed to read line.");
@@ -14,6 +17,7 @@ fn main() {
         let f: Box<dyn Fn(f64) -> f64> = match choice {
             1 => Box::new(|x: f64| x.powi(2)), // Function x^2
             2 => Box::new(|x: f64| (1.0 - x.powi(2)).sqrt()), // Function sqrt(1 - x^2)
+            3 => Box::new(|x:f64| x.powi(2) + 1.0),
             _ => panic!("Invalid choice"),
         };
 
@@ -24,12 +28,26 @@ fn main() {
             .expect("Failed to read line.");
         let n: usize = input.trim().parse().expect("Please enter a valid number.");
 
-        let a = 0.0;
-        let b = if choice == 2 { 1.0 } else { 2.0 }; // Adjust 'b' based on the function
-        let h = if choice == 2 { 1.0 } else { 4.0 }; // Adjust 'h' based on the function
+        // Definindo o intervalo e a altura do gráfico
+        let (a, b, h) = match choice {
+            1 => (0.0, 2.0, 4.0),          // Para f(x) = x^2 no intervalo [0, 2], h = 4
+            2 => (0.0, 1.0, 1.0),          // Para f(x) = sqrt(1 - x^2) no intervalo [0, 1], h = 1
+            3 => (0.0, 1.0, 2.0),          // Para f(x) = x^2 + 1 no intervalo [0, 1], h = 2
+            _ => panic!("Invalid choice"),
+        };
+        println!(
+            "Starting the calculation for {} iterations, for function {}",
+            n,
+            match choice {
+                1 => "x^2",
+                2 => "sqrt(1 - x^2)",
+                3 => "x^2 + 1",
+                _ => "",
+            }
+        );
 
         println!("Starting the calculation for {} iterations, to function ", n);
-
+        // Calculando a integral
         let (inside_points, outside_points, integral_approx) = monte_carlo_integration(&*f, a, b, h, n);
         plot_monte_carlo(
             &inside_points,
@@ -55,6 +73,7 @@ fn main() {
     }
 }
 
+// Função para calcular a integral de uma função no intervalo [a, b] usando o método de Monte Carlo
 fn monte_carlo_integration<F>(
     f: &F,
     a: f64,
@@ -87,6 +106,8 @@ where
     (inside_points, outside_points, integral_approx)
 }
 
+
+// Função para plotar o gráfico
 fn plot_monte_carlo(
     inside_points: &[(f64, f64)],
     outside_points: &[(f64, f64)],
@@ -99,7 +120,12 @@ fn plot_monte_carlo(
 ) {
     let name = format!(
         "monte_carlo_integral_function_{}_{}.png",
-        if choice == 1 { "xˆ2" } else { "sqrt(1-xˆ2)" },
+        match choice {
+            1 => "x²",
+            2 => "sqrt(1 - x²)",
+            3 => "x² + 1",
+            _ => "unknown",
+        },
         n
     );
     let root = BitMapBackend::new(&name, (600, 600)).into_drawing_area();
